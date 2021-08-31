@@ -28,34 +28,33 @@ import reader
 from model_search import Network
 from paddleslim.nas.darts import DARTSearch
 sys.path[0] = os.path.join(os.path.dirname("__file__"), os.path.pardir)
-from utility import add_arguments, print_arguments
 
-parser = argparse.ArgumentParser(description=__doc__)
-add_arg = functools.partial(add_arguments, argparser=parser)
+parser = argparse.ArgumentParser("Search config")
 
 # yapf: disable
-add_arg('log_freq',          int,   50,              "Log frequency.")
-add_arg('use_multiprocess',  bool,  True,            "Whether use multiprocess reader.")
-add_arg('batch_size',        int,   64,              "Minibatch size.")
-add_arg('learning_rate',     float, 0.025,            "The start learning rate.")
-add_arg('momentum',          float, 0.9,             "Momentum.")
-add_arg('use_gpu',           bool,  True,            "Whether use GPU.")
-add_arg('epochs',            int,   50,              "Epoch number.")
-add_arg('init_channels',     int,   16,              "Init channel number.")
-add_arg('layers',            int,   8,               "Total number of layers.")
-add_arg('class_num',         int,   10,              "Class number of dataset.")
-add_arg('trainset_num',      int,   50000,           "images number of trainset.")
-add_arg('model_save_dir',    str,   'search_cifar', "The path to save model.")
-add_arg('grad_clip',         float, 5,               "Gradient clipping.")
-add_arg('arch_learning_rate',float, 3e-4,            "Learning rate for arch encoding.")
-add_arg('method',            str,   'DARTS',         "The search method you would like to use")
-add_arg('epochs_no_archopt', int,   0,               "Epochs not optimize the arch params")
-add_arg('cutout_length',     int,   16,              "Cutout length.")
-add_arg('cutout',            ast.literal_eval,  False, "Whether use cutout.")
-add_arg('unrolled',          ast.literal_eval,  False, "Use one-step unrolled validation loss")
-add_arg('use_data_parallel', ast.literal_eval,  False, "The flag indicating whether to use data parallel mode to train the model.")
+parser.add_argument('--log_freq', type=int, default=50, help="Log frequency.")
+parser.add_argument('--use_multiprocess', type=bool, default=True, help="Whether use multiprocess reader.")
+parser.add_argument('--batch_size', type=int, default=32, help="Minibatch size.")
+parser.add_argument('--learning_rate', type=float, default=0.025, help="The start learning rate.")
+parser.add_argument('--momentum', type=float, default=0.9, help="Momentum.")
+parser.add_argument('--use_gpu', type=bool, default=True, help="Whether use GPU.")
+parser.add_argument('--epochs', type=int, default=50, help="Epoch number.")
+parser.add_argument('--init_channels', type=int, default=16, help="Init channel number.")
+parser.add_argument('--layers', type=int, default=8, help="Total number of layers.")
+parser.add_argument('--class_num', type=int, default=10, help="Class number of dataset.")
+parser.add_argument('--trainset_num', type=int, default=50000, help="images number of trainset.")
+parser.add_argument('--model_save_dir', type=str, default='search_cifar', help="The path to save model.")
+parser.add_argument('--grad_clip', type=float, default=5, help="Gradient clipping.")
+parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help="Learning rate for arch encoding.")
+parser.add_argument('--method', type=str, default='DARTS', help="The search method you would like to use")
+parser.add_argument('--epochs_no_archopt', type=int, default=0, help="Epochs not optimize the arch params")
+parser.add_argument('--cutout_length', type=int, default=16, help="Cutout length.")
+parser.add_argument('--cutout', type=ast.literal_eval, default=False, help="Whether use cutout.")
+parser.add_argument('--unrolled', type=ast.literal_eval, default=False, help="Use one-step unrolled validation loss")
+parser.add_argument('--use_data_parallel', type=ast.literal_eval, default=False, help="The flag indicating whether to use data parallel mode to train the model.")
 # yapf: enable
 
+args = parser.parse_args()
 
 def main(args):
     if not args.use_gpu:
@@ -95,6 +94,5 @@ def main(args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    print_arguments(args)
 
     main(args)
