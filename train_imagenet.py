@@ -30,39 +30,37 @@ from paddleslim.nas.darts import count_parameters_in_MB
 
 import genotypes
 import reader
-from model import NetworkImageNet as Network
+from model.augment_cnn import NetworkImageNet as Network
 sys.path[0] = os.path.join(os.path.dirname("__file__"), os.path.pardir)
-from utility import add_arguments, print_arguments
 logger = get_logger(__name__, level=logging.INFO)
 
-parser = argparse.ArgumentParser(description=__doc__)
-add_arg = functools.partial(add_arguments, argparser=parser)
+parser = argparse.ArgumentParser("Training Imagenet Config")
 
 # yapf: disable
-add_arg('use_multiprocess',  bool,  True,            "Whether use multiprocess reader.")
-add_arg('num_workers',       int,   4,               "The multiprocess reader number.")
-add_arg('data_dir',          str,   'dataset/ILSVRC2012',"The dir of dataset.")
-add_arg('batch_size',        int,   128,             "Minibatch size.")
-add_arg('learning_rate',     float, 0.1,             "The start learning rate.")
-add_arg('decay_rate',        float, 0.97,            "The lr decay rate.")
-add_arg('momentum',          float, 0.9,             "Momentum.")
-add_arg('weight_decay',      float, 3e-5,            "Weight_decay.")
-add_arg('use_gpu',           bool,  True,            "Whether use GPU.")
-add_arg('epochs',            int,   250,             "Epoch number.")
-add_arg('init_channels',     int,   48,              "Init channel number.")
-add_arg('layers',            int,   14,              "Total number of layers.")
-add_arg('class_num',         int,   1000,            "Class number of dataset.")
-add_arg('trainset_num',      int,   1281167,         "Images number of trainset.")
-add_arg('model_save_dir',    str,   'eval_imagenet', "The path to save model.")
-add_arg('auxiliary',         bool,  True,            'Use auxiliary tower.')
-add_arg('auxiliary_weight',  float, 0.4,             "Weight for auxiliary loss.")
-add_arg('drop_path_prob',    float, 0.0,             "Drop path probability.")
-add_arg('dropout',           float, 0.0,             "Dropout probability.")
-add_arg('grad_clip',         float, 5,               "Gradient clipping.")
-add_arg('label_smooth',      float, 0.1,             "Label smoothing.")
-add_arg('arch',              str,   'DARTS_V2',      "Which architecture to use")
-add_arg('log_freq',          int,   100,             'Report frequency')
-add_arg('use_data_parallel', ast.literal_eval,  False, "The flag indicating whether to use data parallel mode to train the model.")
+parser.add_argument('--use_multiprocess',  type=bool,  default=True,            help="Whether use multiprocess reader.")
+parser.add_argument('--num_workers',       type=int,   default=4,               help="The multiprocess reader number.")
+parser.add_argument('--data_dir',          type=str,   default='dataset/ILSVRC2012', help="The dir of dataset.")
+parser.add_argument('--batch_size',        type=int,   default=128,             help="Minibatch size.")
+parser.add_argument('--learning_rate',     type=float, default=0.1,             help="The start learning rate.")
+parser.add_argument('--decay_rate',        type=float, default=0.97,            help="The lr decay rate.")
+parser.add_argument('--momentum',          type=float, default=0.9,             help="Momentum.")
+parser.add_argument('--weight_decay',      type=float, default=3e-5,            help="Weight_decay.")
+parser.add_argument('--use_gpu',           type=bool,  default=True,            help="Whether use GPU.")
+parser.add_argument('--epochs',            type=int,   default=250,             help="Epoch number.")
+parser.add_argument('--init_channels',     type=int,   default=48,              help="Init channel number.")
+parser.add_argument('--layers',            type=int,   default=14,              help="Total number of layers.")
+parser.add_argument('--class_num',         type=int,   default=1000,            help="Class number of dataset.")
+parser.add_argument('--trainset_num',      type=int,   default=1281167,         help="Images number of trainset.")
+parser.add_argument('--model_save_dir',    type=str,   default='eval_imagenet', help="The path to save model.")
+parser.add_argument('--auxiliary',         type=bool,  default=True,            help='Use auxiliary tower.')
+parser.add_argument('--auxiliary_weight',  type=float, default=0.4,             help="Weight for auxiliary loss.")
+parser.add_argument('--drop_path_prob',    type=float, default=0.0,             help="Drop path probability.")
+parser.add_argument('--dropout',           type=float, default=0.0,             help="Dropout probability.")
+parser.add_argument('--grad_clip',         type=float, default=5,               help="Gradient clipping.")
+parser.add_argument('--label_smooth',      type=float, default=0.1,             help="Label smoothing.")
+parser.add_argument('--arch',              type=str,   default='DARTS_V2',      help="Which architecture to use")
+parser.add_argument('--log_freq',          type=int,   default=100,             help='Report frequency')
+parser.add_argument('--use_data_parallel', type=ast.literal_eval,  default=False, help="The flag indicating whether to use data parallel mode to train the model.")
 # yapf: enable
 
 
@@ -235,6 +233,4 @@ def main(args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    print_arguments(args)
-
     main(args)

@@ -30,12 +30,12 @@ from paddleslim.nas.darts import count_parameters_in_MB
 
 import genotypes
 import reader
-from model import NetworkCIFAR as Network
+from model.augment_cnn import NetworkCIFAR as Network
 sys.path[0] = os.path.join(os.path.dirname("__file__"), os.path.pardir)
 
 logger = get_logger(__name__, level=logging.INFO)
 
-parser = argparse.ArgumentParser("Retraining Config")
+parser = argparse.ArgumentParser("Training Config")
 
 # yapf: disable
 parser.add_argument('--use_multiprocess', type=bool, default=True, help="Whether use multiprocess reader.")
