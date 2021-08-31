@@ -32,35 +32,34 @@ import genotypes
 import reader
 from model import NetworkCIFAR as Network
 sys.path[0] = os.path.join(os.path.dirname("__file__"), os.path.pardir)
-from utility import add_arguments, print_arguments
+
 logger = get_logger(__name__, level=logging.INFO)
 
-parser = argparse.ArgumentParser(description=__doc__)
-add_arg = functools.partial(add_arguments, argparser=parser)
+parser = argparse.ArgumentParser("Retraining Config")
 
 # yapf: disable
-add_arg('use_multiprocess',  bool,  True,            "Whether use multiprocess reader.")
-add_arg('data',              str,   'dataset/cifar10',"The dir of dataset.")
-add_arg('batch_size',        int,   96,              "Minibatch size.")
-add_arg('learning_rate',     float, 0.025,           "The start learning rate.")
-add_arg('momentum',          float, 0.9,             "Momentum.")
-add_arg('weight_decay',      float, 3e-4,            "Weight_decay.")
-add_arg('use_gpu',           bool,  True,            "Whether use GPU.")
-add_arg('epochs',            int,   600,             "Epoch number.")
-add_arg('init_channels',     int,   36,              "Init channel number.")
-add_arg('layers',            int,   20,              "Total number of layers.")
-add_arg('class_num',         int,   10,              "Class number of dataset.")
-add_arg('trainset_num',      int,   50000,           "images number of trainset.")
-add_arg('model_save_dir',    str,   'eval_cifar',   "The path to save model.")
-add_arg('cutout',            bool,  True,            'Whether use cutout.')
-add_arg('cutout_length',     int,   16,              "Cutout length.")
-add_arg('auxiliary',         bool,  True,            'Use auxiliary tower.')
-add_arg('auxiliary_weight',  float, 0.4,             "Weight for auxiliary loss.")
-add_arg('drop_path_prob',    float, 0.2,             "Drop path probability.")
-add_arg('grad_clip',         float, 5,               "Gradient clipping.")
-add_arg('arch',              str,   'DARTS_V2',      "Which architecture to use")
-add_arg('log_freq',          int,   50,              'Report frequency')
-add_arg('use_data_parallel', ast.literal_eval,  False, "The flag indicating whether to use data parallel mode to train the model.")
+parser.add_argument('--use_multiprocess', type=bool, default=True, help="Whether use multiprocess reader.")
+parser.add_argument('--data', type=str, default='dataset/cifar10', help="The dir of dataset.")
+parser.add_argument('--batch_size', type=int, default=96, help="Minibatch size.")
+parser.add_argument('--learning_rate', type=float, default=0.025, help="The start learning rate.")
+parser.add_argument('--momentum', type=float, default=0.9, help="Momentum.")
+parser.add_argument('--weight_decay', type=float, default=3e-4, help="Weight_decay.")
+parser.add_argument('--use_gpu', type=bool, default=True, help="Whether use GPU.")
+parser.add_argument('--epochs', type=int, default=600, help="Epoch number.")
+parser.add_argument('--init_channels', type=int, default=36, help="Init channel number.")
+parser.add_argument('--layers', type=int, default=20, help="Total number of layers.")
+parser.add_argument('--class_num', type=int, default=10, help="Class number of dataset.")
+parser.add_argument('--trainset_num', type=int, default=50000, help="images number of trainset.")
+parser.add_argument('--model_save_dir', type=str, default='eval_cifar', help="The path to save model.")
+parser.add_argument('--cutout', type=bool, default=True, help='Whether use cutout.')
+parser.add_argument('--cutout_length', type=int, default=16, help="Cutout length.")
+parser.add_argument('--auxiliary', type=bool, default=True, help='Use auxiliary tower.')
+parser.add_argument('--auxiliary_weight', type=float, default=0.4, help="Weight for auxiliary loss.")
+parser.add_argument('--drop_path_prob', type=float, default=0.2, help="Drop path probability.")
+parser.add_argument('--grad_clip', type=float, default=5, help="Gradient clipping.")
+parser.add_argument('--arch', type=str, default='DARTS_V2', help="Which architecture to use")
+parser.add_argument('--log_freq', type=int, default=50, help='Report frequency')
+parser.add_argument('--use_data_parallel', type=ast.literal_eval, default=False, help="The flag indicating whether to use data parallel mode to train the model.")
 # yapf: enable
 
 
@@ -220,5 +219,4 @@ def main(args):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    print_arguments(args)
     main(args)
