@@ -25,7 +25,7 @@ import functools
 import paddle.fluid as fluid
 from paddle.fluid.dygraph.base import to_variable
 import reader
-from model.model_search import Network
+from model.search_cnn import Network
 from paddleslim.nas.darts import DARTSearch
 sys.path[0] = os.path.join(os.path.dirname("__file__"), os.path.pardir)
 
