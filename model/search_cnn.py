@@ -15,6 +15,9 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
+import logging
+import numpy as np
 import paddle
 import paddle.nn.functional as F
 import paddle.fluid as fluid
@@ -30,7 +33,7 @@ from operations import *
 from model.search_cells import SearchCell
 
 
-class SNetwork(fluid.dygraph.Layer):
+class Network(fluid.dygraph.Layer):
     def __init__(self,
                  args,
                  criterion,
@@ -100,7 +103,7 @@ class SNetwork(fluid.dygraph.Layer):
             if 'alpha' in n:
                 self._alphas.append((n,p))
         # C_in means the input data
-        self.net = Network(C_in, n_classes, n_layers, "DARTS", steps=n_nodes, stem_multiplier=stem_multiplier)
+        self.net = SearchCNN(C_in, n_classes, n_layers, "DARTS", steps=n_nodes, stem_multiplier=stem_multiplier)
 
     def forward(self, x):
         if self.aux:
@@ -112,9 +115,59 @@ class SNetwork(fluid.dygraph.Layer):
         
         with fluid.dygraph.guard(self.place):
             return self.net(x, weights_normal, weights_reduce)
-            
+        
+    def loss(self, X, y):
+        logits = self.forward(X)
+        return self.criterion(logits, y)
 
-class Network(fluid.dygraph.Layer):
+    def print_alphas(self, logger):
+        # remove formats
+        org_formatters = []
+        for handler in logger.getLogger('ecdarts').handlers:
+            org_formatters.append(handler.formatter)
+            handler.setFormatter(logging.Formatter("%(message)s"))
+
+        logger.info("####### ALPHA #######")
+        logger.info("# Alpha - normal")
+        for alpha in self.alpha_normal:
+            logger.info(F.softmax(alpha, axis=0))
+
+        logger.info("\n# Alpha - reduce")
+        for alpha in self.alpha_reduce:
+            logger.info(F.softmax(alpha, axis=0))
+
+        # restore formats
+        for handler, formatter in zip(logger.getLogger('ecdarts').handlers, org_formatters):
+            handler.setFormatter(formatter)
+
+    def genotype(self):
+        gene_normal = gt.parse(self.alpha_normal, k=2)
+        gene_reduce = gt.parse(self.alpha_reduce, k=2)
+        concat = range(2, 2+self.n_nodes) # concat all intermediate nodes
+
+        return gt.Genotype(normal=gene_normal, normal_concat=concat,
+                           reduce=gene_reduce, reduce_concat=concat)
+
+    def weights(self):
+        return self.net.parameters()
+
+    def named_weights(self):
+        return self.net.named_parameters()
+
+    def alphas(self):
+        for n, p in self._alphas:
+            yield p
+
+    def named_alphas(self):
+        for n, p in self._alphas:
+            yield n, p
+    def minmaxscaler(data):
+        min = np.amin(data)
+        max = np.amax(data)    
+        return (data - min)/(max-min)
+
+
+class SearchCNN(fluid.dygraph.Layer):
     def __init__(self,
                  c_in,
                  num_classes,
@@ -123,7 +176,7 @@ class Network(fluid.dygraph.Layer):
                  steps=4,
                  multiplier=4,
                  stem_multiplier=3):
-        super(Network, self).__init__()
+        super(SearchCNN, self).__init__()
         # NOTE: c_in = args.init_channels, input_channels = 3 fixed.
         self._c_in = c_in
         self._num_classes = num_classes
@@ -216,7 +269,7 @@ class Network(fluid.dygraph.Layer):
         return loss
 
     def new(self):
-        model_new = Network(self._c_in, self._num_classes, self._layers,
+        model_new = SearchCNN(self._c_in, self._num_classes, self._layers,
                             self._method)
         return model_new
 
