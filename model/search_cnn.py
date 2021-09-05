@@ -15,8 +15,11 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+import paddle
+import paddle.nn.functional as F
 import paddle.fluid as fluid
+import genotypes as gt
+
 from paddle.fluid.param_attr import ParamAttr
 from paddle.fluid.initializer import NormalInitializer, MSRAInitializer, ConstantInitializer
 from paddle.fluid.dygraph.nn import Conv2D, Pool2D, BatchNorm, Linear
@@ -26,6 +29,90 @@ from operations import *
 
 from model.search_cells import SearchCell
 
+
+class SNetwork(fluid.dygraph.Layer):
+    def __init__(self,
+                 args,
+                 criterion,
+                 aux,
+                 alpha_normal=None,
+                 alpha_reduce=None,
+                 n_nodes=4,
+                 stem_multiplier=3,
+                 device_ids=None):
+        super().__init__()
+        # NOTE: C_in = args.init_channels here. Origin C_in = input_channels = 3 fixed.
+        C_in = args.init_channels
+        n_layers = args.layers
+        n_classes = args.class_num
+        self.n_nodes = n_nodes
+        self.epoch=1
+        self.aux=aux
+        self.criterion = criterion
+
+        if not args.use_gpu:
+            place = fluid.CPUPlace()
+        elif not args.use_data_parallel:
+            place = fluid.CUDAPlace(0)
+        else:
+            place = fluid.CUDAPlace(fluid.dygraph.parallel.Env().dev_id)
+        self.place = place
+
+        n_ops = len(gt.PRIMITIVES)
+
+        self.alpha_normal = fluid.dygraph.ParameterList()
+        self.alpha_reduce = fluid.dygraph.ParameterList()
+
+        if aux:
+            for i in range(n_nodes):
+                self.alpha_normal.append(
+                    paddle.create_parameter(
+                        shape=[i+2, n_ops],
+                        dtype="float32"))
+                self.alpha_reduce.append(
+                    paddle.create_parameter(
+                        shape=[i+2, n_ops],
+                        dtype="float32"))
+
+                with paddle.no_grad():
+                    edge_max, primitive_indices = paddle.topk(alpha_normal[i][:, :-1], 1)
+                    topk_edge_values, topk_edge_indices = paddle.topk(edge_max.reshape([-1]), 2)
+                    for edge_idx in topk_edge_indices:
+                        prim_idx = primitive_indices[edge_idx]
+                        self.alpha_normal[i][edge_idx][prim_idx] = 1.0
+                    
+                    edge_max, primitive_indices = paddle.topk(alpha_reduce[i][:, :-1], 1)  # ignore 'none'
+                    topk_edge_values, topk_edge_indices = paddle.topk(edge_max.reshape([-1]), 2)
+                    for edge_idx in topk_edge_indices:
+                        prim_idx = primitive_indices[edge_idx]
+                        self.alpha_reduce[i][edge_idx][prim_idx] = 1.0
+        else:
+            for i in range(n_nodes):
+                self.alpha_normal.append(fluid.layers.create_parameter(
+                    shape=[i+2, n_ops],
+                    dtype="float32",
+                    default_initializer=NormalInitializer(
+                        loc=0.0, scale=1e-3)))
+
+        # setup alphas list
+        self._alphas = []
+        for n, p in self.named_parameters():
+            if 'alpha' in n:
+                self._alphas.append((n,p))
+        # C_in means the input data
+        self.net = Network(C_in, n_classes, n_layers, "DARTS", steps=n_nodes, stem_multiplier=stem_multiplier)
+
+    def forward(self, x):
+        if self.aux:
+            weights_normal = [alpha for alpha in self.alpha_normal]
+            weights_reduce = [alpha for alpha in self.alpha_reduce]
+        else:
+            weights_normal = [F.softmax(alpha, axis=0) for alpha in self.alpha_normal]
+            weights_reduce = [F.softmax(alpha, axis=0) for alpha in self.alpha_reduce]
+        
+        with fluid.dygraph.guard(self.place):
+            return self.net(x, weights_normal, weights_reduce)
+            
 
 class Network(fluid.dygraph.Layer):
     def __init__(self,
@@ -37,6 +124,7 @@ class Network(fluid.dygraph.Layer):
                  multiplier=4,
                  stem_multiplier=3):
         super(Network, self).__init__()
+        # NOTE: c_in = args.init_channels, input_channels = 3 fixed.
         self._c_in = c_in
         self._num_classes = num_classes
         self._layers = layers
