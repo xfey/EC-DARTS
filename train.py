@@ -30,7 +30,7 @@ from paddleslim.nas.darts import count_parameters_in_MB
 
 import genotypes
 import reader
-from model.augment_cnn import NetworkCIFAR as Network
+from models.augment_cnn import NetworkCIFAR as Network
 sys.path[0] = os.path.join(os.path.dirname("__file__"), os.path.pardir)
 
 logger = get_logger(__name__, level=logging.INFO)

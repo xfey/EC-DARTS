@@ -26,7 +26,7 @@ from genotypes import PRIMITIVES
 from genotypes import Genotype
 from operations import *
 
-from model.augment_cells import AugmentCell
+from models.augment_cells import AugmentCell
 
 
 class ConvBN(fluid.dygraph.Layer):

@@ -30,7 +30,7 @@ from paddle.fluid.dygraph.base import to_variable
 from genotypes import PRIMITIVES
 from operations import *
 
-from model.search_cells import SearchCell
+from models.search_cells import SearchCell
 
 
 class Network(fluid.dygraph.Layer):
