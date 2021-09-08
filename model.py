@@ -1,29 +1,30 @@
-import torch
-import torch.nn as nn
 from operations import *
 from models.search_cnn import Network
 import utils
 
 import paddle
+import paddle.fluid as fluid
 # import paddle.nn as nn
+from paddle.fluid.dygraph.base import to_variable
 
 
-def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net_crit, aux_w_optim, lr_scheduler_aux, epoch, device,
+def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net_crit, aux_w_optim, lr_scheduler_aux, epoch, place,
         logging):
     lr_scheduler_aux.step()
     lr = lr_scheduler_aux.get_lr()[0]
     save_path = args.save_path + 'one-shot_weights.pt'
-    torch.save(model.state_dict(), save_path)
-    pretrained_dict = torch.load(save_path)
+    paddle.save(model.state_dict(), save_path)
+    pretrained_dict = paddle.load(save_path)
     pretrained_dict = {k: v for k, v in pretrained_dict.items() if 'alpha' not in k}
 
     # construct an auxiliary model
-    aux_model = Network(args, aux_net_crit, aux=True, alpha_normal=model.alpha_normal, alpha_reduce=model.alpha_reduce,
-                            device_ids=args.gpus)
+    aux_model = Network(args, aux_net_crit, aux=True, alpha_normal=model.alpha_normal, alpha_reduce=model.alpha_reduce)
     aux_model_dict = aux_model.state_dict()
     aux_model_dict.update(pretrained_dict)
     aux_model.load_state_dict(aux_model_dict)
-    aux_model = aux_model.to(device)
+    
+    aux_model = aux_model.to(place)
+    
     top1 = utils.AverageMeter()
     top5 = utils.AverageMeter()
     losses = utils.AverageMeter()
@@ -31,23 +32,33 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
     cur_step = epoch * len(train_loader)
 
     aux_model.train()
-    for step, ((trn_X, trn_y), (val_X, val_y)) in enumerate(zip(train_loader, valid_loader)):
-        trn_X, trn_y = trn_X.to(device, non_blocking=True), trn_y.to(device, non_blocking=True)
-        val_X, val_y = val_X.to(device, non_blocking=True), val_y.to(device, non_blocking=True)
-        N = trn_X.size(0)
+    # for step, ((trn_X, trn_y), (val_X, val_y)) in enumerate(zip(train_loader, valid_loader)):
+    #     trn_X, trn_y = trn_X.to(place, blocking=False), trn_y.to(place, blocking=False)
+    #     val_X, val_y = val_X.to(place, blocking=False), val_y.to(place, blocking=False)
+    #     N = trn_X.size(0)
+    for step, (train_data, valid_data) in enumerate(zip(train_loader(), valid_loader())):
+        trn_X, trn_y = train_data
+        val_X, val_y = valid_data
+        trn_X = to_variable(trn_X)
+        trn_y = to_variable(trn_y)
+        trn_y.stop_gradient = True
+        val_X = to_variable(val_X)
+        val_y = to_variable(val_y)
+        val_y.stop_gradient = True
+        N = trn_X.shape[0]
 
         # # # phase 2. architect step (alpha)
-        alpha_optim.zero_grad()
+        alpha_optim.clear_grad()
         architect.unrolled_backward(trn_X, trn_y, val_X, val_y, lr, aux_w_optim)
         alpha_optim.step()
 
-        aux_w_optim.zero_grad()
+        aux_w_optim.clear_grad()
         logits = aux_model(trn_X)
 
         loss = aux_model.criterion(logits, trn_y)
         loss.backward()
         # gradient clipping
-        nn.utils.clip_grad_norm_(aux_model.weights(), args.w_grad_clip)
+        clip_grad_norm_(aux_model.weights(), args.w_grad_clip)
         aux_w_optim.step()
 
         prec1, prec5 = utils.accuracy(logits, trn_y, topk=(1, 5))
@@ -60,3 +71,11 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
         cur_step += 1
 
     return model, aux_model, top1.avg, losses.avg
+
+
+def clip_grad_norm_(parameters, clip_value):
+    if isinstance(parameters, paddle.Tensor):
+        parameters = [parameters]
+    clip_value = float(clip_value)
+    for p in filter(lambda p: p.grad is not None, parameters):
+        paddle.clip(p.grad, min=-clip_value, max=clip_value)

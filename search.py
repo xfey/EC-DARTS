@@ -64,6 +64,9 @@ def main(args):
     else:
         place = fluid.CUDAPlace(fluid.dygraph.parallel.Env().dev_id)
 
+    # NOTE: pass place to IST()
+    # NOTE: using paddle.optimizer.Adam()
+    
     train_reader, valid_reader = reader.train_search(
         batch_size=args.batch_size,
         train_portion=0.5,

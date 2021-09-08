@@ -41,8 +41,7 @@ class Network(fluid.dygraph.Layer):
                  alpha_normal=None,
                  alpha_reduce=None,
                  n_nodes=4,
-                 stem_multiplier=3,
-                 device_ids=None):
+                 stem_multiplier=3):
         super().__init__()
         # NOTE: C_in = args.init_channels here. Origin C_in = input_channels = 3 fixed.
         C_in = args.init_channels
