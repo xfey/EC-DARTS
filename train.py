@@ -48,7 +48,7 @@ parser.add_argument('--use_gpu', type=bool, default=True, help="Whether use GPU.
 parser.add_argument('--epochs', type=int, default=600, help="Epoch number.")
 parser.add_argument('--init_channels', type=int, default=36, help="Init channel number.")
 parser.add_argument('--layers', type=int, default=20, help="Total number of layers.")
-parser.add_argument('--class_num', type=int, default=10, help="Class number of dataset.")
+parser.add_argument('--n_classes', type=int, default=10, help="Class number of dataset.")
 parser.add_argument('--trainset_num', type=int, default=50000, help="images number of trainset.")
 parser.add_argument('--model_save_dir', type=str, default='eval_cifar', help="The path to save model.")
 parser.add_argument('--cutout', type=bool, default=True, help='Whether use cutout.')
@@ -142,7 +142,7 @@ def main(args):
         genotype = eval("genotypes.%s" % args.arch)
         model = Network(
             C=args.init_channels,
-            num_classes=args.class_num,
+            num_classes=args.n_classes,
             layers=args.layers,
             auxiliary=args.auxiliary,
             genotype=genotype)

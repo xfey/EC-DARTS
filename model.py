@@ -48,11 +48,11 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
         N = trn_X.shape[0]
 
         # # # phase 2. architect step (alpha)
-        alpha_optim.clear_grad()
+        alpha_optim.clear_gradients()
         architect.unrolled_backward(trn_X, trn_y, val_X, val_y, lr, aux_w_optim)
         alpha_optim.step()
 
-        aux_w_optim.clear_grad()
+        aux_w_optim.clear_gradients()
         logits = aux_model(trn_X)
 
         loss = aux_model.criterion(logits, trn_y)

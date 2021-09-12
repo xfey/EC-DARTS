@@ -49,7 +49,7 @@ parser.add_argument('--use_gpu',           type=bool,  default=True,            
 parser.add_argument('--epochs',            type=int,   default=250,             help="Epoch number.")
 parser.add_argument('--init_channels',     type=int,   default=48,              help="Init channel number.")
 parser.add_argument('--layers',            type=int,   default=14,              help="Total number of layers.")
-parser.add_argument('--class_num',         type=int,   default=1000,            help="Class number of dataset.")
+parser.add_argument('--n_classes',         type=int,   default=1000,            help="Class number of dataset.")
 parser.add_argument('--trainset_num',      type=int,   default=1281167,         help="Images number of trainset.")
 parser.add_argument('--model_save_dir',    type=str,   default='eval_imagenet', help="The path to save model.")
 parser.add_argument('--auxiliary',         type=bool,  default=True,            help='Use auxiliary tower.')
@@ -66,7 +66,7 @@ parser.add_argument('--use_data_parallel', type=ast.literal_eval,  default=False
 
 def cross_entropy_label_smooth(preds, targets, epsilon):
     preds = fluid.layers.softmax(preds)
-    targets_one_hot = fluid.one_hot(input=targets, depth=args.class_num)
+    targets_one_hot = fluid.one_hot(input=targets, depth=args.n_classes)
     targets_smooth = fluid.layers.label_smooth(
         targets_one_hot, epsilon=epsilon, dtype="float32")
     loss = fluid.layers.cross_entropy(
@@ -155,7 +155,7 @@ def main(args):
         genotype = eval("genotypes.%s" % args.arch)
         model = Network(
             C=args.init_channels,
-            num_classes=args.class_num,
+            num_classes=args.n_classes,
             layers=args.layers,
             auxiliary=args.auxiliary,
             genotype=genotype)

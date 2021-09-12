@@ -132,8 +132,22 @@ def cifar10_reader(file_name, data_name, is_shuffle, args):
     return datasets
 
 
-def train_search(batch_size, train_portion, is_shuffle, args):
+def train_search_cifar10(batch_size, train_portion, is_shuffle, args):
     datasets = cifar10_reader(
+        paddle.dataset.common.download(CIFAR10_URL, 'cifar', CIFAR10_MD5),
+        'data_batch', is_shuffle, args)
+    split_point = int(np.floor(train_portion * len(datasets)))
+    train_datasets = datasets[:split_point]
+    val_datasets = datasets[split_point:]
+    reader = [
+        reader_generator(train_datasets, batch_size, True, True, args),
+        reader_generator(val_datasets, batch_size, True, True, args)
+    ]
+    return reader
+
+
+def train_search_imagenet(batch_size, train_portion, is_shuffle, args):
+    datasets = imagenet_reader(
         paddle.dataset.common.download(CIFAR10_URL, 'cifar', CIFAR10_MD5),
         'data_batch', is_shuffle, args)
     split_point = int(np.floor(train_portion * len(datasets)))

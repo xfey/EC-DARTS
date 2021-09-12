@@ -46,7 +46,7 @@ class Network(fluid.dygraph.Layer):
         # NOTE: C_in = args.init_channels here. Origin C_in = input_channels = 3 fixed.
         C_in = args.init_channels
         n_layers = args.layers
-        n_classes = args.class_num
+        n_classes = args.n_classes
         self.n_nodes = n_nodes
         self.epoch=1
         self.aux=aux
