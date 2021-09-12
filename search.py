@@ -33,7 +33,7 @@ from paddle.fluid.dygraph.base import to_variable
 from paddleslim.nas.darts import count_parameters_in_MB
 
 import reader
-from model import IST
+from model import IST, clip_grad_norm_
 from models.search_cnn import Network
 from visualize import plot
 
@@ -197,7 +197,7 @@ def train(train_loader, valid_loader, model, architect, w_optim, alpha_optim, lr
         val_X = to_variable(val_X)
         val_y = to_variable(val_y)
         val_y.stop_gradient = True
-        n = trn_X.shape[0]
+        N = trn_X.shape[0]
 
         alpha_optim.clear_gradients()
         architect.unrolled_backward(trn_X, trn_y, val_X, val_y, lr, w_optim)
@@ -209,10 +209,45 @@ def train(train_loader, valid_loader, model, architect, w_optim, alpha_optim, lr
         
         # NOTE: parallel not implemented
         loss.backward()
+        clip_grad_norm_(model.weights(), args.w_grad_clip)
+        w_optim.step()
 
+        prec1, prec5 = utils.accuracy(logits, trn_y, topk=(1, 5))
+        losses.update(loss.item(), N)
+        top1.update(prec1.item(), N)
+        top5.update(prec5.item(), N)
 
+        if step % args.print_freq == 0 or step == len(train_loader) - 1:
+            logging.info('Aux_TRAIN Step: %03d Objs: %e R1: %f R5: %f', step, losses.avg, top1.avg, top5.avg)
         
+    return top1.avg, losses.avg
 
+
+def validate(valid_loader, model, epoch):
+    top1 = utils.AverageMeter()
+    top5 = utils.AverageMeter()
+    losses = utils.AverageMeter()
+
+    model.eval()
+
+    with paddle.no_grad():
+        for step, (X, y) in enumerate(valid_loader):
+            X = to_variable(X)
+            y = to_variable(y)
+            N = X.shape[0]
+
+            logits = model(X)
+            loss = model.criterion(logits, y)
+
+            prec1, prec5 = utils.accuracy(logits, y, topk=(1, 5))
+            losses.update(loss.item(), N)
+            top1.update(prec1.item(), N)
+            top5.update(prec5.item(), N)
+
+            if step % args.print_freq == 0:
+                logging.info('Epoch: %d VALID Step: %03d Objs: %e R1: %f R5: %f', epoch, step, losses.avg, top1.avg, top5.avg)
+
+    return top1.avg, losses.avg
 
 
 if __name__ == '__main__':
