@@ -64,6 +64,10 @@ class MixedOp(fluid.dygraph.Layer):
         self._ops = fluid.dygraph.LayerList(ops)
 
     def forward(self, x, weights):
+        # for i, op in enumerate(self._ops):
+        #     print(weights[i])
+        #     print(op(x))
+    
         out = fluid.layers.sums(
             [weights[i] * op(x) for i, op in enumerate(self._ops)])
         return out

@@ -19,6 +19,7 @@ from __future__ import print_function
 import logging
 import numpy as np
 import paddle
+from paddle.fluid.layers.nn import adaptive_pool2d
 import paddle.nn.functional as F
 import paddle.fluid as fluid
 import genotypes as gt
@@ -95,6 +96,11 @@ class Network(fluid.dygraph.Layer):
                     dtype="float32",
                     default_initializer=NormalInitializer(
                         loc=0.0, scale=1e-3)))
+                self.alpha_reduce.append(fluid.layers.create_parameter(
+                    shape=[i+2, n_ops],
+                    dtype="float32",
+                    default_initializer=NormalInitializer(
+                        loc=0.0, scale=1e-3)))
 
         # setup alphas list
         self._alphas = []
@@ -114,6 +120,8 @@ class Network(fluid.dygraph.Layer):
         
         # with fluid.dygraph.guard(self.place):
         return self.net(x, weights_normal, weights_reduce)
+
+        # implement parallel with problems.
         
     def loss(self, X, y):
         logits = self.forward(X)
@@ -180,7 +188,7 @@ class SearchCNN(fluid.dygraph.Layer):
         self._c_in = c_in
         self._num_classes = num_classes
         self._layers = layers
-        self._steps = steps
+        self._steps = steps     # steps = n_nodes
         self._multiplier = multiplier
         self._primitives = PRIMITIVES
         self._method = method
@@ -202,6 +210,7 @@ class SearchCNN(fluid.dygraph.Layer):
                     initializer=ConstantInitializer(value=0))))
 
         c_prev_prev, c_prev, c_cur = c_cur, c_cur, c_in
+
         cells = []
         reduction_prev = False
         for i in range(layers):
@@ -215,6 +224,7 @@ class SearchCNN(fluid.dygraph.Layer):
             reduction_prev = reduction
             cells.append(cell)
             c_prev_prev, c_prev = c_prev, multiplier * c_cur
+
         self.cells = fluid.dygraph.LayerList(cells)
         self.global_pooling = Pool2D(pool_type='avg', global_pooling=True)
         self.classifier = Linear(
@@ -246,6 +256,7 @@ class SearchCNN(fluid.dygraph.Layer):
             #     weights = fluid.layers.softmax(self.alphas_normal)
             weights = weights_reduce if cell.reduction else weights_normal
             s0, s1 = s1, cell(s0, s1, weights, weights2)
+        
         out = self.global_pooling(s1)
         out = fluid.layers.squeeze(out, axes=[2, 3])
         logits = self.classifier(out)
