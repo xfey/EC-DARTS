@@ -119,7 +119,7 @@ class Network(fluid.dygraph.Layer):
             weights_reduce = [F.softmax(alpha, axis=0) for alpha in self.alpha_reduce]
         
         # with fluid.dygraph.guard(self.place):
-        return self.net(x, weights_normal, weights_reduce)
+        return self.net(x)
 
         # implement parallel with problems.
         
@@ -172,6 +172,15 @@ class Network(fluid.dygraph.Layer):
         min = np.amin(data)
         max = np.amax(data)    
         return (data - min)/(max-min)
+
+    def _loss(self, input, target):
+        return self.net._loss(input, target)
+
+    def new(self):
+        return self.net.new()
+
+    def arch_parameters(self):
+        return self.net._arch_parameters
 
 
 class SearchCNN(fluid.dygraph.Layer):
@@ -246,15 +255,15 @@ class SearchCNN(fluid.dygraph.Layer):
     #     logits = self.linear(out)
     #     return logits
 
-    def forward(self, input, weights_normal, weights_reduce):
+    def forward(self, input):
         s0 = s1 = self.stem(input)
         weights2 = None
         for i, cell in enumerate(self.cells):
-            # if cell.reduction:
-            #     weights = fluid.layers.softmax(self.alphas_reduce)
-            # else:
-            #     weights = fluid.layers.softmax(self.alphas_normal)
-            weights = weights_reduce if cell.reduction else weights_normal
+            if cell.reduction:
+                weights = fluid.layers.softmax(self.alphas_reduce)
+            else:
+                weights = fluid.layers.softmax(self.alphas_normal)
+            # weights = weights_reduce if cell.reduction else weights_normal
             s0, s1 = s1, cell(s0, s1, weights, weights2)
         
         out = self.global_pooling(s1)

@@ -29,7 +29,11 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
     top5 = utils.AverageMeter()
     losses = utils.AverageMeter()
 
-    cur_step = epoch * len(train_loader)
+    len_train_loader = 0
+    for _ in enumerate(train_loader):
+        len_train_loader += 1
+
+    cur_step = epoch * len_train_loader
 
     aux_model.train()
     # for step, ((trn_X, trn_y), (val_X, val_y)) in enumerate(zip(train_loader, valid_loader)):
@@ -49,7 +53,8 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
 
         # # # phase 2. architect step (alpha)
         alpha_optim.clear_gradients()
-        architect.unrolled_backward(trn_X, trn_y, val_X, val_y, lr, aux_w_optim)
+        # architect.unrolled_backward(trn_X, trn_y, val_X, val_y, lr, aux_w_optim)
+        architect.step(trn_X, trn_y, val_X, val_y)
         alpha_optim.step()
 
         aux_w_optim.clear_gradients()
@@ -61,12 +66,15 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
         clip_grad_norm_(aux_model.weights(), args.w_grad_clip)
         aux_w_optim.step()
 
-        prec1, prec5 = utils.accuracy(logits, trn_y, topk=(1, 5))
+        # prec1, prec5 = utils.accuracy(logits, trn_y, topk=(1, 5))
+        prec1 = fluid.layers.accuracy(input=logits, label=trn_y, k=1)
+        prec5 = fluid.layers.accuracy(input=logits, label=trn_y, k=5)
         losses.update(loss.item(), N)
         top1.update(prec1.item(), N)
         top5.update(prec5.item(), N)
 
-        if step % args.print_freq == 0 or step == len(train_loader) - 1:
+        # if step % args.print_freq == 0 or step == len(train_loader) - 1:
+        if step % args.print_freq == 0:
             logging.info('Aux_TRAIN Step: %03d Objs: %e R1: %f R5: %f', step, losses.avg, top1.avg, top5.avg)
         cur_step += 1
 

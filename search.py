@@ -15,7 +15,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from architect import Architect
+# from architect import Architect
+from architect2 import Architect
 
 import os
 import sys
@@ -30,7 +31,7 @@ import paddle
 import paddle.nn as nn
 import paddle.fluid as fluid
 from paddle.fluid.dygraph.base import to_variable
-from paddleslim.nas.darts import count_parameters_in_MB
+from paddleslim.nas.darts import architect, count_parameters_in_MB
 
 import reader
 from model import IST, clip_grad_norm_
@@ -144,8 +145,10 @@ def main(args):
         train_loader.set_batch_generator(train_reader, places=place)
         valid_loader.set_batch_generator(valid_reader, places=place)
 
-        net_crit = nn.CrossEntropyLoss().to(place)
-        aux_net_crit = nn.CrossEntropyLoss().to(place)
+        # net_crit = nn.CrossEntropyLoss().to(place)
+        # aux_net_crit = nn.CrossEntropyLoss().to(place)
+        net_crit = nn.CrossEntropyLoss()
+        aux_net_crit = nn.CrossEntropyLoss()
         model = Network(args, net_crit, aux=False)
         # model = model.to(place)
 
@@ -166,7 +169,8 @@ def main(args):
         a_optim_aux = paddle.optimizer.Adam(learning_rate=args.alpha_lr, parameters=model.alphas(), beta1=0.5, beta2=0.999, weight_decay=args.alpha_weight_decay)
         lr_scheduler_aux = paddle.optimizer.lr.CosineAnnealingDecay(learning_rate=args.w_lr, T_max=args.epochs, eta_min=args.w_lr_min)
 
-        architect = Architect(model, v_model, args.w_momentum, args.w_weight_decay)
+        # architect = Architect(model, v_model, args.w_momentum, args.w_weight_decay)
+        architect = Architect(model, args.w_lr, args.alpha_lr, unrolled=args.unrolled, parallel=args.use_data_parallel)
 
         best_top1 = 0.
         is_best = True
@@ -178,7 +182,10 @@ def main(args):
             logging.info('Train_acc %f', train_acc)
 
             # validation
-            cur_step = (epoch+1) * len(train_loader)
+            len_train_loader = 0
+            for _ in enumerate(train_loader):
+                len_train_loader += 1
+            cur_step = (epoch+1) * len_train_loader
 
             model, aux_model, train_aux_acc, train_aux_obj = IST(args, train_loader, valid_loader, model, architect, a_optim_aux, aux_net_crit, w_optim_aux, lr_scheduler_aux, epoch, place, loggingx)
             logging.info('Train_aux_acc %f', train_aux_acc)
@@ -239,7 +246,8 @@ def train(train_loader, valid_loader, model, architect, w_optim, alpha_optim, lr
         N = trn_X.shape[0]
 
         alpha_optim.clear_gradients()
-        architect.unrolled_backward(trn_X, trn_y, val_X, val_y, lr, w_optim)
+        # architect.unrolled_backward(trn_X, trn_y, val_X, val_y, lr, w_optim)
+        architect.step(trn_X, trn_y, val_X, val_y)
         alpha_optim.step()
 
         w_optim.clear_gradients()
@@ -250,12 +258,15 @@ def train(train_loader, valid_loader, model, architect, w_optim, alpha_optim, lr
         clip_grad_norm_(model.weights(), args.w_grad_clip)
         w_optim.step()
 
-        prec1, prec5 = utils.accuracy(logits, trn_y, topk=(1, 5))
+        # prec1, prec5 = utils.accuracy(logits, trn_y, topk=(1, 5))
+        prec1 = fluid.layers.accuracy(input=logits, label=trn_y, k=1)
+        prec5 = fluid.layers.accuracy(input=logits, label=trn_y, k=5)
         losses.update(loss.item(), N)
         top1.update(prec1.item(), N)
         top5.update(prec5.item(), N)
 
-        if step % args.print_freq == 0 or step == len(train_loader) - 1:
+        # if step % args.print_freq == 0 or step == len(train_loader) - 1:
+        if step % args.print_freq == 0:
             logging.info('Aux_TRAIN Step: %03d Objs: %e R1: %f R5: %f', step, losses.avg, top1.avg, top5.avg)
         
     return top1.avg, losses.avg
@@ -277,7 +288,9 @@ def validate(valid_loader, model, epoch):
             logits = model(X)
             loss = model.criterion(logits, y)
 
-            prec1, prec5 = utils.accuracy(logits, y, topk=(1, 5))
+            # prec1, prec5 = utils.accuracy(logits, y, topk=(1, 5))
+            prec1 = fluid.layers.accuracy(input=logits, label=y, k=1)
+            prec5 = fluid.layers.accuracy(input=logits, label=y, k=5)
             losses.update(loss.item(), N)
             top1.update(prec1.item(), N)
             top5.update(prec5.item(), N)
