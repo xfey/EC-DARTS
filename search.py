@@ -187,7 +187,7 @@ def main(args):
                 len_train_loader += 1
             cur_step = (epoch+1) * len_train_loader
 
-            model, aux_model, train_aux_acc, train_aux_obj = IST(args, train_loader, valid_loader, model, architect, a_optim_aux, aux_net_crit, w_optim_aux, lr_scheduler_aux, epoch, place, loggingx)
+            model, aux_model, train_aux_acc, train_aux_obj = IST(args, train_loader, valid_loader, model, architect, a_optim_aux, aux_net_crit, w_optim_aux, lr_scheduler_aux, epoch, place, logging)
             logging.info('Train_aux_acc %f', train_aux_acc)
 
             valid_acc, valid_obj = validate(valid_loader, aux_model, epoch, cur_step)
