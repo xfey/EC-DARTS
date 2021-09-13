@@ -112,8 +112,8 @@ class Network(fluid.dygraph.Layer):
             weights_normal = [F.softmax(alpha, axis=0) for alpha in self.alpha_normal]
             weights_reduce = [F.softmax(alpha, axis=0) for alpha in self.alpha_reduce]
         
-        with fluid.dygraph.guard(self.place):
-            return self.net(x, weights_normal, weights_reduce)
+        # with fluid.dygraph.guard(self.place):
+        return self.net(x, weights_normal, weights_reduce)
         
     def loss(self, X, y):
         logits = self.forward(X)
@@ -225,36 +225,26 @@ class SearchCNN(fluid.dygraph.Layer):
 
         self._initialize_alphas()
 
-    def forward(self, input):
+    # def forward(self, x, weights_normal, weights_reduce):
+    #     s0 = s1 = self.stem(x)
+    #     for cell in self.cells:
+    #         weights = weights_reduce if cell.reduction else weights_normal
+    #         s0, s1 = s1, cell(s0, s1, weights)
+
+    #     out = self.gap(s1)
+    #     out = out.view(out.size(0), -1) # flatten
+    #     logits = self.linear(out)
+    #     return logits
+
+    def forward(self, input, weights_normal, weights_reduce):
         s0 = s1 = self.stem(input)
         weights2 = None
         for i, cell in enumerate(self.cells):
-            if cell.reduction:
-                weights = fluid.layers.softmax(self.alphas_reduce)
-                if self._method == "PC-DARTS":
-                    n = 3
-                    start = 2
-                    weights2 = fluid.layers.softmax(self.betas_reduce[0:2])
-                    for i in range(self._steps - 1):
-                        end = start + n
-                        tw2 = fluid.layers.softmax(self.betas_reduce[start:
-                                                                     end])
-                        start = end
-                        n += 1
-                        weights2 = fluid.layers.concat([weights2, tw2])
-            else:
-                weights = fluid.layers.softmax(self.alphas_normal)
-                if self._method == "PC-DARTS":
-                    n = 3
-                    start = 2
-                    weights2 = fluid.layers.softmax(self.betas_normal[0:2])
-                    for i in range(self._steps - 1):
-                        end = start + n
-                        tw2 = fluid.layers.softmax(self.betas_normal[start:
-                                                                     end])
-                        start = end
-                        n += 1
-                        weights2 = fluid.layers.concat([weights2, tw2])
+            # if cell.reduction:
+            #     weights = fluid.layers.softmax(self.alphas_reduce)
+            # else:
+            #     weights = fluid.layers.softmax(self.alphas_normal)
+            weights = weights_reduce if cell.reduction else weights_normal
             s0, s1 = s1, cell(s0, s1, weights, weights2)
         out = self.global_pooling(s1)
         out = fluid.layers.squeeze(out, axes=[2, 3])
@@ -289,18 +279,6 @@ class SearchCNN(fluid.dygraph.Layer):
             self.alphas_normal,
             self.alphas_reduce,
         ]
-        if self._method == "PC-DARTS":
-            self.betas_normal = fluid.layers.create_parameter(
-                shape=[k],
-                dtype="float32",
-                default_initializer=NormalInitializer(
-                    loc=0.0, scale=1e-3))
-            self.betas_reduce = fluid.layers.create_parameter(
-                shape=[k],
-                dtype="float32",
-                default_initializer=NormalInitializer(
-                    loc=0.0, scale=1e-3))
-            self._arch_parameters += [self.betas_normal, self.betas_reduce]
 
     def arch_parameters(self):
         return self._arch_parameters

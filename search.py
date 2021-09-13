@@ -64,9 +64,6 @@ parser.add_argument('--cutout', type=ast.literal_eval, default=False, help="Whet
 parser.add_argument('--unrolled', type=ast.literal_eval, default=False, help="Use one-step unrolled validation loss")
 parser.add_argument('--use_data_parallel', type=ast.literal_eval, default=False, help="The flag indicating whether to use data parallel mode to train the model.")
 
-parser.add_argument('--dataset', required=True, help='cifar10/100/tiny_imagenet/imagenet')
-parser.add_argument('--train_dir', type=str, default='/home/datasets/', help='')
-parser.add_argument('--val_dir', type=str, default='/home/datasets/', help='')
 parser.add_argument('--w_lr', type=float, default=0.025, help='lr for weights')
 parser.add_argument('--w_lr_min', type=float, default=0.001, help='minimum lr for weights')
 parser.add_argument('--w_momentum', type=float, default=0.9, help='momentum for weights')
@@ -78,8 +75,6 @@ parser.add_argument('--save_path', type=str, default='/home/ec-darts/checkpoints
 parser.add_argument('--plot_path', type=str, default='/home/ec-darts/plot/', help='experiment name')
 parser.add_argument('--save', type=str, default='EC-DARTS', help='experiment name')
 parser.add_argument('--epochs', type=int, default=25, help='# of training epochs')
-parser.add_argument('--init_channels', type=int, default=16)
-parser.add_argument('--layers', type=int, default=8, help='# of layers')
 parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--workers', type=int, default=16, help='# of workers')
 parser.add_argument('--alpha_lr', type=float, default=3e-4, help='lr for alpha')
@@ -152,7 +147,11 @@ def main(args):
         net_crit = nn.CrossEntropyLoss().to(place)
         aux_net_crit = nn.CrossEntropyLoss().to(place)
         model = Network(args, net_crit, aux=False)
-        model = model.to(place)
+        # model = model.to(place)
+
+        v_model = Network(args, net_crit, aux=False)
+        # v_model = v_model.to(place)
+
         logging.info("param size = {:.6f}MB".format(
             count_parameters_in_MB(model.parameters())))
         # weights optimizer
@@ -167,7 +166,7 @@ def main(args):
         a_optim_aux = paddle.optimizer.Adam(learning_rate=args.alpha_lr, parameters=model.alphas(), beta1=0.5, beta2=0.999, weight_decay=args.alpha_weight_decay)
         lr_scheduler_aux = paddle.optimizer.lr.CosineAnnealingDecay(learning_rate=args.w_lr, T_max=args.epochs, eta_min=args.w_lr_min)
 
-        architect = Architect(model, args.w_momentum, args.w_weight_decay)
+        architect = Architect(model, v_model, args.w_momentum, args.w_weight_decay)
 
         best_top1 = 0.
         is_best = True
@@ -175,10 +174,50 @@ def main(args):
             model.print_alphas(logging)
 
             # training
-            # train_acc, tring_obj = 
+            train_acc, tring_obj = train(train_loader, valid_loader, model, architect, w_optim, a_optim, lr_scheduler, epoch)
+            logging.info('Train_acc %f', train_acc)
+
+            # validation
+            cur_step = (epoch+1) * len(train_loader)
+
+            model, aux_model, train_aux_acc, train_aux_obj = IST(args, train_loader, valid_loader, model, architect, a_optim_aux, aux_net_crit, w_optim_aux, lr_scheduler_aux, epoch, place, loggingx)
+            logging.info('Train_aux_acc %f', train_aux_acc)
+
+            valid_acc, valid_obj = validate(valid_loader, aux_model, epoch, cur_step)
+            logging.info('Valid_acc %f', valid_acc)
+            logging.info('Epoch: %d lr: %e', epoch, lr_scheduler)
+
+            # genotype logging
+            genotype = model.genotype()
+            logging.info('genotype = %s', genotype)
+            plot_path = os.path.join(args.plot_path, "EP{:02d}".format(epoch+1))
+            caption = "Epoch {}".format(epoch+1)
+            plot(genotype.normal, plot_path + "-normal", caption)
+            plot(genotype.reduce, plot_path + "-reduce", caption)
+
+            # saving
+            if best_top1 < valid_acc:
+                best_top1 = valid_acc
+                best_genotype = genotype
+                is_best = True
+                save_path = args.save_path + 'aux_model_params.pt'
+                paddle.save(aux_model.state_dict(), save_path)
+                pretrained_dict = paddle.load(save_path)
+                pretrained_dict = {k: v for k, v in pretrained_dict.items() if 'alpha' not in k}
+                model_dict = model.state_dict()
+                model_dict.update(pretrained_dict)
+                model.load_state_dict(model_dict)
+                model = model.to(place)
+            else:
+                is_best = False
+            utils.save_checkpoint(model, args.save_path, is_best)
+            print("")
 
             # NOTE: using lr_scheduler after optimizer.step()
             lr_scheduler.step()
+        
+    logging.info("Final best Prec@1 = {:.4%}".format(best_top1))
+    logging.info("Best Genotype = {}".format(best_genotype))
 
 
 def train(train_loader, valid_loader, model, architect, w_optim, alpha_optim, lr, epoch):
@@ -207,7 +246,6 @@ def train(train_loader, valid_loader, model, architect, w_optim, alpha_optim, lr
         logits = model(trn_X)
         loss = model.criterion(logits, trn_y)
         
-        # NOTE: parallel not implemented
         loss.backward()
         clip_grad_norm_(model.weights(), args.w_grad_clip)
         w_optim.step()

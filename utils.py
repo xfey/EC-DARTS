@@ -1,5 +1,10 @@
 """utils"""
 
+import os
+import paddle
+import shutil
+
+
 class AverageMeter():
     """ Computes and stores the average and current value """
     def __init__(self):
@@ -38,3 +43,10 @@ def accuracy(output, target, topk=(1,)):
         res.append(correct_k.mul_(1.0 / batch_size))
 
     return res
+
+def save_checkpoint(state, ckpt_dir, is_best=False):
+    filename = os.path.join(ckpt_dir, 'checkpoint.pth.tar')
+    paddle.save(state, filename)
+    if is_best:
+        best_filename = os.path.join(ckpt_dir, 'best.pth.tar')
+        shutil.copyfile(filename, best_filename)

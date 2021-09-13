@@ -10,14 +10,15 @@ import numpy as np
 
 class Architect():
     """ Compute gradients of alphas """
-    def __init__(self, net, w_momentum, w_weight_decay):
+    def __init__(self, net, v_net, w_momentum, w_weight_decay):
         """
         Args:
             net
             w_momentum: weights momentum
         """
         self.net = net
-        self.v_net = copy.deepcopy(net)
+        # self.v_net = copy.deepcopy(net)
+        self.v_net = v_net
         self.w_momentum = w_momentum
         self.w_weight_decay = w_weight_decay
         self.hessian = None

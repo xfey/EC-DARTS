@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import print_function
 
 import paddle.fluid as fluid
+from paddle.fluid.layers.nn import shape
 from paddle.fluid.param_attr import ParamAttr
 from paddle.fluid.dygraph.nn import Conv2D, Pool2D, BatchNorm, Linear
 from genotypes import PRIMITIVES
@@ -63,22 +64,8 @@ class MixedOp(fluid.dygraph.Layer):
         self._ops = fluid.dygraph.LayerList(ops)
 
     def forward(self, x, weights):
-        if self._method == "PC-DARTS":
-            dim_2 = x.shape[1]
-            xtemp = x[:, :dim_2 // self._k, :, :]
-            xtemp2 = x[:, dim_2 // self._k:, :, :]
-
-            temp1 = fluid.layers.sums(
-                [weights[i] * op(xtemp) for i, op in enumerate(self._ops)])
-
-            if temp1.shape[2] == x.shape[2]:
-                out = fluid.layers.concat([temp1, xtemp2], axis=1)
-            else:
-                out = fluid.layers.concat([temp1, self.mp(xtemp2)], axis=1)
-            out = channel_shuffle(out, self._k)
-        else:
-            out = fluid.layers.sums(
-                [weights[i] * op(x) for i, op in enumerate(self._ops)])
+        out = fluid.layers.sums(
+            [weights[i] * op(x) for i, op in enumerate(self._ops)])
         return out
 
 
@@ -112,17 +99,10 @@ class SearchCell(fluid.dygraph.Layer):
         states = [s0, s1]
         offset = 0
         for i in range(self._steps):
-            if self._method == "PC-DARTS":
-                s = fluid.layers.sums([
-                    weights2[offset + j] *
-                    self._ops[offset + j](h, weights[offset + j])
-                    for j, h in enumerate(states)
-                ])
-            else:
-                s = fluid.layers.sums([
-                    self._ops[offset + j](h, weights[offset + j])
-                    for j, h in enumerate(states)
-                ])
+            s = fluid.layers.sums([
+                self._ops[offset + j](h, weights[offset + j])
+                for j, h in enumerate(states)
+            ])
             offset += len(states)
             states.append(s)
         out = fluid.layers.concat(input=states[-self._multiplier:], axis=1)
