@@ -19,7 +19,7 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
     aux_model = Network(args, aux_net_crit, aux=True, alpha_normal=model.alpha_normal, alpha_reduce=model.alpha_reduce)
     aux_model_dict = aux_model.state_dict()
     aux_model_dict.update(pretrained_dict)
-    aux_model.load_state_dict(aux_model_dict)
+    aux_model.load(aux_model_dict)
     
     aux_model = aux_model.to(place)
     
