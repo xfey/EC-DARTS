@@ -117,11 +117,13 @@ def main(args):
     elif args.dataset == 'imagenet':
         args.input_channels = 3
         args.n_classes = 1000
-        train_reader, valid_reader = reader.train_search_imagenet(
+        train_reader = fluid.io.batch(
+            reader.imagenet_reader(args.train_dir, 'train'),
             batch_size=args.batch_size,
-            train_portion=0.5,
-            is_shuffle=True,
-            args=args)
+            drop_last=True)
+        valid_reader = fluid.io.batch(
+            reader.imagenet_reader(args.val_dir, 'val'),
+            batch_size=args.batch_size)
     elif args.dataset == 'tiny-imagenet':
         args.n_classes = 200
         args.input_channels = 3
@@ -150,9 +152,6 @@ def main(args):
         aux_net_crit = nn.CrossEntropyLoss()
         model = Network(args, net_crit, aux=False)
         # model = model.to(place)
-
-        v_model = Network(args, net_crit, aux=False)
-        # v_model = v_model.to(place)
 
         logging.info("param size = {:.6f}MB".format(
             count_parameters_in_MB(model.parameters())))

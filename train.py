@@ -37,10 +37,10 @@ from paddleslim.nas.darts import count_parameters_in_MB
 import genotypes
 import reader
 from models.augment_cnn import NetworkCIFAR as Network
-from genotypes import EC_DARTS
+from genotypes import EC_DARTS_cifar as EC_DARTS
+
 
 sys.path[0] = os.path.join(os.path.dirname("__file__"), os.path.pardir)
-
 logger = get_logger(__name__, level=logging.INFO)
 
 parser = argparse.ArgumentParser("Training Config")
@@ -48,7 +48,7 @@ parser = argparse.ArgumentParser("Training Config")
 # yapf: disable
 parser.add_argument('--use_multiprocess', type=bool, default=True, help="Whether use multiprocess reader.")
 parser.add_argument('--data', type=str, default='dataset/cifar10', help="The dir of dataset.")
-parser.add_argument('--batch_size', type=int, default=64, help="Minibatch size.")
+parser.add_argument('--batch_size', type=int, default=32, help="Minibatch size.")
 parser.add_argument('--learning_rate', type=float, default=0.025, help="The start learning rate.")
 parser.add_argument('--momentum', type=float, default=0.9, help="Momentum.")
 parser.add_argument('--weight_decay', type=float, default=3e-4, help="Weight_decay.")
@@ -120,13 +120,10 @@ def main(args):
         exit(1)
     
     if args.dataset != 'cifar10':
-        print('This code is for cifar10 only. Train in imagenet by train_imagenet.py')
+        print('This code is for cifar10 only. Train in imagenet -> train_imagenet.py')
         exit(1)
 
     with fluid.dygraph.guard(place):
-        criterion = nn.CrossEntropyLoss().to(place)
-        use_aux = args.aux_weight > 0.
-
         model = Network(
             C=args.init_channels,
             num_classes=args.n_classes,

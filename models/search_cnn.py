@@ -122,7 +122,12 @@ class Network(fluid.dygraph.Layer):
         return self.net(x)
 
         # implement parallel with problems.
+    def testfunc(self):
+        print('test pass')
         
+    def train(self):
+        return self.net.train()
+
     def loss(self, X, y):
         logits = self.forward(X)
         return self.criterion(logits, y)

@@ -19,9 +19,9 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
     aux_model = Network(args, aux_net_crit, aux=True, alpha_normal=model.alpha_normal, alpha_reduce=model.alpha_reduce)
     aux_model_dict = aux_model.state_dict()
     aux_model_dict.update(pretrained_dict)
-    aux_model.load(aux_model_dict)
+    aux_model.load_dict(aux_model_dict)
     
-    aux_model = aux_model.to(place)
+    # aux_model = aux_model.to(place)
     
     top1 = utils.AverageMeter()
     top5 = utils.AverageMeter()
@@ -33,6 +33,7 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
 
     cur_step = epoch * len_train_loader
 
+    aux_model.testfunc()
     aux_model.train()
     # for step, ((trn_X, trn_y), (val_X, val_y)) in enumerate(zip(train_loader, valid_loader)):
     #     trn_X, trn_y = trn_X.to(place, blocking=False), trn_y.to(place, blocking=False)

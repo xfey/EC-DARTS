@@ -147,6 +147,9 @@ def train_search_cifar10(batch_size, train_portion, is_shuffle, args):
 
 
 def train_search_imagenet(batch_size, train_portion, is_shuffle, args):
+    train_dst = imagenet_reader(args.train_dir, 'train')
+    val_dst = imagenet_reader(args.val_dir, 'val')
+    
     datasets = imagenet_reader(
         paddle.dataset.common.download(CIFAR10_URL, 'cifar', CIFAR10_MD5),
         'data_batch', is_shuffle, args)
@@ -301,9 +304,9 @@ def _reader_creator(file_list,
 def imagenet_reader(data_dir, mode):
     if mode is 'train':
         shuffle = True
-        suffix = 'train_list.txt'
+        suffix = '../train.txt'
     elif mode is 'val':
         shuffle = False
-        suffix = 'val_list.txt'
+        suffix = '../val.txt'
     file_list = os.path.join(data_dir, suffix)
     return _reader_creator(file_list, mode, shuffle=shuffle, data_dir=data_dir)

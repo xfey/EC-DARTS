@@ -1,6 +1,8 @@
-__pycache__
+__pycache__/
 dataset/
 search_cifar/
 EC-DARTS/
 retrain/
+eval_cifar/
+checkpoints/
 nohup.out
