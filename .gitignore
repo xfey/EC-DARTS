@@ -2,3 +2,4 @@ __pycache__
 dataset/
 search_cifar/
 EC-DARTS/
+nohup.out

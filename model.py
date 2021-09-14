@@ -10,8 +10,6 @@ from paddle.fluid.dygraph.base import to_variable
 
 def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net_crit, aux_w_optim, lr_scheduler_aux, epoch, place,
         logging):
-    lr_scheduler_aux.step()
-    lr = lr_scheduler_aux.get_lr()[0]
     save_path = args.save_path + 'one-shot_weights.pt'
     paddle.save(model.state_dict(), save_path)
     pretrained_dict = paddle.load(save_path)
@@ -78,6 +76,8 @@ def IST(args, train_loader, valid_loader, model, architect, alpha_optim, aux_net
             logging.info('Aux_TRAIN Step: %03d Objs: %e R1: %f R5: %f', step, losses.avg, top1.avg, top5.avg)
         cur_step += 1
 
+    lr_scheduler_aux.step()
+    
     return model, aux_model, top1.avg, losses.avg
 
 
