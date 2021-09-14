@@ -18,8 +18,8 @@ from collections import namedtuple
 Genotype = namedtuple('Genotype', 'normal normal_concat reduce reduce_concat')
 
 PRIMITIVES = [
-    'none', 'max_pool_3x3', 'avg_pool_3x3', 'skip_connect', 'sep_conv_3x3',
-    'sep_conv_5x5', 'dil_conv_3x3', 'dil_conv_5x5'
+    'max_pool_3x3', 'avg_pool_3x3', 'skip_connect', 'sep_conv_3x3',
+    'sep_conv_5x5', 'dil_conv_3x3', 'dil_conv_5x5', 'none'
 ]
 
 # NOTE: function to_dag() need torch.nn.Modulelist and is only used in forward-prog
