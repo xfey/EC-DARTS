@@ -155,7 +155,13 @@ EC_DARTS_image = Genotype(
     reduce=[[('max_pool_3x3', 0), ('max_pool_3x3', 1)], [('dil_conv_5x5', 1), ('dil_conv_5x5', 2)], [('sep_conv_3x3', 0),
             ('dil_conv_3x3', 3)], [('dil_conv_5x5', 4), ('sep_conv_3x3', 3)]], reduce_concat=range(2, 6))
 
-EC_DARTS = EC_DARTS_cifar
+EC_DARTS_cifar_2 = Genotype(
+    normal=[('skip_connect', 0), ('sep_conv_3x3', 1), ('dil_conv_3x3', 2), ('sep_conv_3x3', 0), ('sep_conv_3x3', 2),
+            ('sep_conv_3x3', 0), ('sep_conv_3x3', 0), ('dil_conv_5x5', 4)], normal_concat=range(2, 6),
+    reduce=[('skip_connect', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0), ('max_pool_3x3', 1), ('max_pool_3x3', 0),
+            ('dil_conv_3x3', 3), ('skip_connect', 2), ('max_pool_3x3', 0)], reduce_concat=range(2, 6))
+
+EC_DARTS = EC_DARTS_cifar_2
 
 def parse(alpha, k):
     """

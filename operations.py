@@ -34,8 +34,7 @@ OPS = {
         pool_stride=stride,
         pool_padding=1),
     'skip_connect':
-    lambda C, stride, affine: Identity()
-    if stride == 1 else FactorizedReduce(C, C, affine),
+    lambda C, stride, affine: Identity() if stride == 1 else FactorizedReduce(C, C, affine),
     'sep_conv_3x3':
     lambda C, stride, affine: SepConv(C, C, 3, stride, 1,
                                                        affine),
