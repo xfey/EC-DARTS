@@ -15,8 +15,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-# from architect import Architect
-from architect2 import Architect
+from architect import Architect
 
 import os
 import sys
