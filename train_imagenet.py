@@ -46,7 +46,7 @@ parser = argparse.ArgumentParser("Training Imagenet Config")
 # yapf: disable
 parser.add_argument('--use_multiprocess',  type=bool,  default=True,            help="Whether use multiprocess reader.")
 parser.add_argument('--num_workers',       type=int,   default=4,               help="The multiprocess reader number.")
-parser.add_argument('--batch_size',        type=int,   default=32,              help="Minibatch size.")
+parser.add_argument('--batch_size',        type=int,   default=128,             help="Minibatch size.")
 parser.add_argument('--learning_rate',     type=float, default=0.1,             help="The start learning rate.")
 parser.add_argument('--decay_rate',        type=float, default=0.97,            help="The lr decay rate.")
 parser.add_argument('--momentum',          type=float, default=0.9,             help="Momentum.")

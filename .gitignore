@@ -4,5 +4,4 @@ search_cifar/
 EC-DARTS/
 retrain/
 eval_cifar/
-checkpoints/
 nohup.out
