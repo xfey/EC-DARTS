@@ -1,3 +1,22 @@
+# EC-DARTS
+
+本项目基于PaddlePaddle的代码基于PaddleSlim下的DARTS源代码进行修改。
+
+## Preliminary
+
+export PYTHONPATH=$PYTHONPATH:/path/to/EC_DARTS/
+
+## Search
+
+python search.py --dataset cifar10
+
+## Retrain
+
+python train.py --dataset cifar10
+python train_imagenet.py --dataset imagenet
+
+-----
+
 # 可微分架构搜索DARTS(Differentiable Architecture Search)方法使用示例
 
 本示例介绍如何使用PaddlePaddle进行可微分架构搜索，可以直接使用[DARTS](https://arxiv.org/abs/1806.09055)和[PC-DARTS](https://arxiv.org/abs/1907.05737)两种方法，也支持自定义修改后使用其他可微分架构搜索算法。
