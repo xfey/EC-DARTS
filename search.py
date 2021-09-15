@@ -215,7 +215,7 @@ def main(args):
                 # model = model.to(place)
             else:
                 is_best = False
-            utils.save_checkpoint(model, args.save_path, is_best)
+            # paddle.save(model.state_dict(), args.save_path+'epo_'+str(epoch)+'.pt')
             print("")
 
             # NOTE: using lr_scheduler after optimizer.step()
