@@ -185,7 +185,7 @@ def parse(alpha, k):
     for edges in alpha:
         # edges: Tensor(n_edges, n_ops)
         edge_max, primitive_indices = paddle.topk(edges[:, :-1], 1) # ignore 'none'
-        topk_edge_values, topk_edge_indices = paddle.topk(edge_max.view(-1), k)
+        topk_edge_values, topk_edge_indices = paddle.topk(edge_max.reshape(-1), k)
         node_gene = []
         for edge_idx in topk_edge_indices:
             prim_idx = primitive_indices[edge_idx]
