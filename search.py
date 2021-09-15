@@ -211,8 +211,8 @@ def main(args):
                 pretrained_dict = {k: v for k, v in pretrained_dict.items() if 'alpha' not in k}
                 model_dict = model.state_dict()
                 model_dict.update(pretrained_dict)
-                model.load_state_dict(model_dict)
-                model = model.to(place)
+                model.load_dict(model_dict)
+                # model = model.to(place)
             else:
                 is_best = False
             utils.save_checkpoint(model, args.save_path, is_best)
