@@ -195,10 +195,10 @@ def main(args):
             # genotype logging
             genotype = model.genotype()
             logging.info('genotype = %s', genotype)
-            plot_path = os.path.join(args.plot_path, "EP{:02d}".format(epoch+1))
-            caption = "Epoch {}".format(epoch+1)
-            plot(genotype.normal, plot_path + "-normal", caption)
-            plot(genotype.reduce, plot_path + "-reduce", caption)
+            # plot_path = os.path.join(args.plot_path, "EP{:02d}".format(epoch+1))
+            # caption = "Epoch {}".format(epoch+1)
+            # plot(genotype.normal, plot_path + "-normal", caption)
+            # plot(genotype.reduce, plot_path + "-reduce", caption)
 
             # saving
             if best_top1 < valid_acc:
